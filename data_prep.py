@@ -1,4 +1,6 @@
 from pyspark.sql import SparkSession
+import matplotlib.pyplot as plt
+
 from pyspark.sql.functions import (
     col, unix_timestamp, round, month, to_timestamp
 )
@@ -37,6 +39,6 @@ def load_and_clean_data(spark, path):
 
     logger.info(f"Rows before cleaning: {df.count()}")
     logger.info(f"Rows after cleaning: {df_clean.count()}")
-    df_clean.show()
 
     return df_clean
+

@@ -1,18 +1,13 @@
 import matplotlib.pyplot as plt
-import branca
 import pandas as pd
 import seaborn as sns
 import folium
-from folium import plugins
-from pyspark.sql.functions import col, dayofweek, when, count
+from pyspark.sql.functions import col, dayofweek, when, count, round, avg
 from logger import get_logger
 
 logger = get_logger("task.log")
 
 def plot_monthly_trip_duration_histograms(df):
-    """
-    Plots monthly histograms of trip duration counts, separated by user type.
-    """
     # Optional: filter to focus on common range
     df = df[df["trip_duration_min"] < 300]
 
@@ -44,11 +39,6 @@ def plot_monthly_trip_duration_histograms(df):
     plt.show()
 
 def plot_monthly_ride_counts(df):
-    """
-    Plots a grouped bar chart of total rides per month by user type.
-    """
-    import matplotlib.pyplot as plt
-    import seaborn as sns
 
     # Aggregate counts
     monthly_counts = df.groupby(["month", "member_casual"]).size().reset_index(name="count")
@@ -162,3 +152,30 @@ def generate_route_map_by_daytype(df_routes, output_file="daytype_route_map.html
 
     m.save(output_file)
     logger.info(f"generate_route_map_by_daytype() - Map saved to {output_file}")
+
+
+def plot_ride_type_distribution(df_clean):
+    # Group and convert to pandas
+    grouped_df = df_clean.groupBy("rideable_type", "member_casual").count()
+    pdf = grouped_df.toPandas()
+
+    # Pivot for plotting
+    pivot_df = pdf.pivot(index="rideable_type", columns="member_casual", values="count").fillna(0)
+
+    # Plot
+    ax = pivot_df.plot(kind="bar", figsize=(10, 6), color=["orange", "steelblue"])
+    plt.title("Bike Usage by Ride Type and User Type")
+    plt.xlabel("Rideable Type")
+    plt.ylabel("Number of Rides")
+    plt.xticks(rotation=0)
+    plt.legend(title="User Type")
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+def get_avg_duration_by_bike_and_user(df):
+    return (
+        df.groupBy("rideable_type", "member_casual")
+          .agg(round(avg("trip_duration_min"), 2).alias("avg_duration_min"))
+          .orderBy("rideable_type", "member_casual")
+    )
